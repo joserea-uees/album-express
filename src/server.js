@@ -18,6 +18,8 @@ const fotos = [
     }
 ]
 
+let siguienteId = Math.max(0, ...fotos.map(foto => foto.id)) + 1;
+
 app.get('/api/fotos', (req,res) => {
     res.json(fotos);
 });
@@ -54,13 +56,47 @@ app.post('/api/fotos', (req, res) => {
         return res.status(400).json({ error: 'El título es obligatorio' });
     }
     const nueva = {
-        id: fotos.length + 1,
+        id: siguienteId++,
         titulo,
         descripcion,
         calificacion,
     };
     fotos.push(nueva);
     res.status(201).json(nueva);
+});
+
+app.patch('/api/fotos/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const foto = fotos.find(f => f.id === id);
+    if (!foto) {
+        return res.status(404).json({ error: 'Foto no encontrada' });
+    }
+
+    const cambios = req.body;
+    if (!cambios || Array.isArray(cambios)) {
+        return res.status(400).json({ error: 'Envía un cuerpo JSON con los campos a actualizar' });
+    }
+    if (Object.hasOwn(cambios, 'titulo') && !cambios.titulo) {
+        return res.status(400).json({ error: 'El título es obligatorio' });
+    }
+
+    for (const campo of ['titulo', 'calificacion', 'descripcion']) {
+        if (Object.hasOwn(cambios, campo)) {
+            foto[campo] = cambios[campo];
+        }
+    }
+    res.json(foto);
+});
+
+app.delete('/api/fotos/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const indice = fotos.findIndex(f => f.id === id);
+    if (indice === -1) {
+        return res.status(404).json({ error: 'Foto no encontrada' });
+    }
+
+    fotos.splice(indice, 1);
+    res.status(204).end();
 });
 
 app.get('/api/error', async () => {
